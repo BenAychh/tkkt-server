@@ -1,0 +1,34 @@
+version: "3.9"
+services:
+  db:
+    image: postgres
+    networks:
+      new:
+        aliases:
+          - database
+    environment:
+      POSTGRES_DB: mydbname
+      POSTGRES_USER: mydbuser
+      POSTGRES_PASSWORD: mydbpwd
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: pg_isready -U mydbuser -d mydbname
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate
+    networks:
+      - new
+    volumes:
+      - ./db/migrations:/migrations
+    command: ["-path", "/migrations", "-database",  "postgres://mydbuser:mydbpwd@database:5432/mydbname?sslmode=disable", "up"]
+    links:
+      - db
+    depends_on:
+      db:
+        condition: service_healthy
+networks:
+  new:
